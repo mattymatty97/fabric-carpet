@@ -2,6 +2,7 @@ package carpet.mixins;
 
 import carpet.CarpetSettings;
 import carpet.fakes.CoralFeatureInterface;
+import carpet.helpers.CoralHelper;
 import net.minecraft.block.*;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.tag.BlockTags;
@@ -19,54 +20,19 @@ public abstract class CoralFanBlockMixin implements Fertilizable
 {
     public boolean isFertilizable(BlockView var1, BlockPos var2, BlockState var3, boolean var4)
     {
-        return CarpetSettings.renewableCoral == CarpetSettings.RenewableCoralMode.EXPANDED
-                && var3.get(CoralParentBlock.WATERLOGGED)
-                && var1.getFluidState(var2.up()).isIn(FluidTags.WATER);
+        return CoralHelper.canBonemeal(var1,var2,var3);
     }
 
     public boolean canGrow(World var1, Random var2, BlockPos var3, BlockState var4)
     {
-        return (double)var1.random.nextFloat() < 0.15D;
+        return CoralHelper.isBonemealSuccess(var1);
     }
 
-    public void grow(ServerWorld worldIn, Random random, BlockPos pos, BlockState blockUnder)
+    public void grow(ServerWorld worldIn, Random random, BlockPos pos, BlockState blockState)
     {
 
-        CoralFeature coral;
-        int variant = random.nextInt(3);
-        if (variant == 0)
-            coral = new CoralClawFeature(DefaultFeatureConfig.CODEC);
-        else if (variant == 1)
-            coral = new CoralTreeFeature(DefaultFeatureConfig.CODEC);
-        else
-            coral = new CoralMushroomFeature(DefaultFeatureConfig.CODEC);
+        CoralFeature coral = new CoralMushroomFeature(DefaultFeatureConfig.CODEC);
 
-        MapColor color = blockUnder.getMapColor(worldIn, pos);
-        BlockState proper_block = blockUnder;
-        for (Block block: BlockTags.CORAL_BLOCKS.values())
-        {
-            proper_block = block.getDefaultState();
-            if (proper_block.getMapColor(worldIn,pos) == color)
-            {
-                break;
-            }
-        }
-        worldIn.setBlockState(pos, Blocks.WATER.getDefaultState(), 4);
-
-        if (!((CoralFeatureInterface)coral).growSpecific(worldIn, random, pos, proper_block))
-        {
-            worldIn.setBlockState(pos, blockUnder, 3);
-        }
-        else
-        {
-            if (worldIn.random.nextInt(10)==0)
-            {
-                BlockPos randomPos = pos.add(worldIn.random.nextInt(16)-8,worldIn.random.nextInt(8),worldIn.random.nextInt(16)-8  );
-                if (BlockTags.CORAL_BLOCKS.contains(worldIn.getBlockState(randomPos).getBlock()))
-                {
-                    worldIn.setBlockState(randomPos, Blocks.WET_SPONGE.getDefaultState(), 3);
-                }
-            }
-        }
+        CoralHelper.processGrowth(worldIn,random,pos,blockState,coral);
     }
 }
