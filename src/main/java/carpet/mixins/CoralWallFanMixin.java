@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.Mixin;
 
 import java.util.Random;
 
-@Mixin(CoralWallFanMixin.class)
+@Mixin(CoralWallFanBlock.class)
 public abstract class CoralWallFanMixin implements Fertilizable {
     public boolean isFertilizable(BlockView var1, BlockPos var2, BlockState var3, boolean var4) {
         return CoralHelper.canBonemeal(var1, var2, var3);

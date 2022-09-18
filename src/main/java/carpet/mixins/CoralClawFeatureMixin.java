@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(CoralClawFeature.class)
 public class CoralClawFeatureMixin {
 
-    @ModifyVariable(method = "generateCoral", at=@At("STORE"), name = "direction")
+    @ModifyVariable(method = "generateCoral", at=@At("STORE"), ordinal = 0)
     private Direction getDirection(Direction rand){
         Direction attempt = CoralHelper.getDirection((CoralClawFeature)(Object)this);
         return (attempt==null)?rand:attempt;

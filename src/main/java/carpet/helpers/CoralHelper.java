@@ -97,10 +97,8 @@ public class CoralHelper {
         Map<Block, Block> tmp_map = new HashMap<>();
         Set<Block> baseCoralSet;
         {
-            List<Block> coralPlantSet = BlockTags.CORAL_PLANTS.values();
-            List<Block> coralWallSet = BlockTags.WALL_CORALS.values();
-            baseCoralSet = new HashSet<>(coralPlantSet);
-            baseCoralSet.addAll(coralWallSet);
+            baseCoralSet = new HashSet<>(BlockTags.CORALS.values());
+            baseCoralSet.addAll(BlockTags.WALL_CORALS.values());
         }
         for (Block coralPlant : baseCoralSet){
             BlockState proper_block = coralPlant.getDefaultState();
