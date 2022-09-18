@@ -8,5 +8,5 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public interface CoralFeatureInterface
 {
-    boolean growSpecific(Level worldIn, RandomSource random, BlockPos pos, BlockState blockUnder);
+    boolean growSpecific(Level worldIn, RandomSource random, BlockPos pos, BlockState blockState);
 }
