@@ -77,7 +77,7 @@ public class CoralHelper {
                         || (CarpetSettings.renewableCoral == CarpetSettings.RenewableCoralMode.TRUE
                             && isWarm))
                     && var3.get(CoralParentBlock.WATERLOGGED)
-                    && var1.getFluidState(var2.up()).isIn(FluidTags.WATER);
+                    && var1.getBlockState(var2.up()).isOf(Blocks.WATER);
         }
     }
 
