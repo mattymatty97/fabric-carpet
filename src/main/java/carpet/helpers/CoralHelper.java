@@ -53,7 +53,7 @@ public class CoralHelper {
         if (!((CoralFeatureInterface)coral).growSpecific(worldIn, random, pos, proper_block))
         {
             worldIn.setBlockState(pos, blockState, 3);
-        }
+        }/*
         else
         {
             if (worldIn.random.nextInt(10)==0)
@@ -64,7 +64,7 @@ public class CoralHelper {
                     worldIn.setBlockState(randomPos, Blocks.WET_SPONGE.getDefaultState(), 3);
                 }
             }
-        }
+        }*/
     }
 
     public static boolean canBonemeal(BlockView var1, BlockPos var2, BlockState var3) {
