@@ -60,7 +60,7 @@ public class CoralHelper {
         if (!((CoralFeatureInterface)coral).growSpecific(worldIn, random, pos, proper_block))
         {
             worldIn.setBlock(pos, blockState, 3);
-        }
+        }/*
         else
         {
             if (worldIn.random.nextInt(10)==0)
@@ -71,7 +71,7 @@ public class CoralHelper {
                     worldIn.setBlock(randomPos, Blocks.WET_SPONGE.defaultBlockState(), 3);
                 }
             }
-        }
+        }*/
     }
 
     public static boolean canBonemeal(BlockGetter var1, BlockPos var2, BlockState var3) {
@@ -103,7 +103,7 @@ public class CoralHelper {
         Set<Block> baseCoralSet;
         coralBlockSet = worldIn.registryAccess().registryOrThrow(Registry.BLOCK_REGISTRY).getTag(BlockTags.CORAL_BLOCKS).orElseThrow().stream().map(Holder::value).collect(Collectors.toUnmodifiableSet());
         {
-            Set<Block> coralPlantSet = worldIn.registryAccess().registryOrThrow(Registry.BLOCK_REGISTRY).getTag(BlockTags.CORAL_PLANTS).orElseThrow().stream().map(Holder::value).collect(Collectors.toUnmodifiableSet());
+            Set<Block> coralPlantSet = worldIn.registryAccess().registryOrThrow(Registry.BLOCK_REGISTRY).getTag(BlockTags.CORALS).orElseThrow().stream().map(Holder::value).collect(Collectors.toUnmodifiableSet());
             Set<Block> coralWallSet = worldIn.registryAccess().registryOrThrow(Registry.BLOCK_REGISTRY).getTag(BlockTags.WALL_CORALS).orElseThrow().stream().map(Holder::value).collect(Collectors.toUnmodifiableSet());
             baseCoralSet = new HashSet<>(coralPlantSet);
             baseCoralSet.addAll(coralWallSet);
