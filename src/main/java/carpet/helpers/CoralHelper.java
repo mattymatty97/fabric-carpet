@@ -82,7 +82,7 @@ public class CoralHelper {
                         || (CarpetSettings.renewableCoral == CarpetSettings.RenewableCoralMode.TRUE
                             && level.getBiome(var2).is(BiomeTags.PRODUCES_CORALS_FROM_BONEMEAL)))
                     && var3.getValue(BaseCoralPlantTypeBlock.WATERLOGGED)
-                    && var1.getFluidState(var2.above()).is(FluidTags.WATER);
+                    && var1.getBlockState(var2.above()).is(Blocks.WATER);
         }
     }
 
