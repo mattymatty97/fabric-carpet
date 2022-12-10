@@ -5,7 +5,7 @@ import carpet.fakes.CoralFeatureInterface;
 import carpet.helpers.CoralHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;

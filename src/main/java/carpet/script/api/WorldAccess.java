@@ -1,6 +1,5 @@
 package carpet.script.api;
 
-import carpet.CarpetServer;
 import carpet.CarpetSettings;
 import carpet.fakes.ChunkGeneratorInterface;
 import carpet.fakes.ChunkTicketManagerInterface;
@@ -11,7 +10,6 @@ import carpet.fakes.ThreadedAnvilChunkStorageInterface;
 import carpet.helpers.FeatureGenerator;
 import carpet.mixins.PoiRecord_scarpetMixin;
 import carpet.script.CarpetContext;
-import carpet.script.CarpetScriptServer;
 import carpet.script.Context;
 import carpet.script.Expression;
 import carpet.script.Fluff;
@@ -36,7 +34,6 @@ import carpet.script.value.StringValue;
 import carpet.script.value.Value;
 import carpet.script.value.ValueConversions;
 import carpet.utils.BlockInfo;
-import carpet.utils.CommandHelper;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -47,6 +44,8 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.QuartPos;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.chunk.PalettedContainer;
@@ -298,7 +297,7 @@ public class WorldAccess {
                 if (poi == null)
                     return Value.NULL;
                 return ListValue.of(
-                        ValueConversions.of(Registry.POINT_OF_INTEREST_TYPE.getKey(poi.getPoiType().value())),
+                        ValueConversions.of(BuiltInRegistries.POINT_OF_INTEREST_TYPE.getKey(poi.getPoiType().value())),
                         new NumericValue(poiType.maxTickets() - ((PoiRecord_scarpetMixin)poi).getFreeTickets())
                 );
             }
@@ -312,7 +311,7 @@ public class WorldAccess {
                 String poiType = lv.get(locator.offset+1).getString().toLowerCase(Locale.ROOT);
                 if (!"any".equals(poiType))
                 {
-                    PoiType type =  Registry.POINT_OF_INTEREST_TYPE.getOptional(InputValidator.identifierOf(poiType))
+                    PoiType type =  BuiltInRegistries.POINT_OF_INTEREST_TYPE.getOptional(InputValidator.identifierOf(poiType))
                             .orElseThrow(() -> new ThrowStatement(poiType, Throwables.UNKNOWN_POI));
                     condition = (tt) -> tt.value() == type;
                 }
@@ -338,9 +337,9 @@ public class WorldAccess {
                     store.getInRange(condition, pos, radius, status);
             return ListValue.wrap(pois.sorted(Comparator.comparingDouble(p -> p.getPos().distSqr(pos))).map(p ->
                     ListValue.of(
-                            ValueConversions.of(Registry.POINT_OF_INTEREST_TYPE.getKey(p.getPoiType().value())),
+                            ValueConversions.of(BuiltInRegistries.POINT_OF_INTEREST_TYPE.getKey(p.getPoiType().value())),
                             new NumericValue(p.getPoiType().value().maxTickets() - ((PoiRecord_scarpetMixin)p).getFreeTickets()),
-                            ListValue.of(new NumericValue(p.getPos().getX()), new NumericValue(p.getPos().getY()), new NumericValue(p.getPos().getZ()))
+                            ValueConversions.of(p.getPos())
                     )
             ).collect(Collectors.toList()));
         });
@@ -363,9 +362,9 @@ public class WorldAccess {
             }
             String poiTypeString = poi.getString().toLowerCase(Locale.ROOT);
             ResourceLocation resource = InputValidator.identifierOf(poiTypeString);
-            PoiType type =  Registry.POINT_OF_INTEREST_TYPE.getOptional(resource)
+            PoiType type =  BuiltInRegistries.POINT_OF_INTEREST_TYPE.getOptional(resource)
                     .orElseThrow(() -> new ThrowStatement(poiTypeString, Throwables.UNKNOWN_POI));
-            Holder<PoiType> holder = Registry.POINT_OF_INTEREST_TYPE.getHolderOrThrow(ResourceKey.create(Registry.POINT_OF_INTEREST_TYPE_REGISTRY, resource));
+            Holder<PoiType> holder = BuiltInRegistries.POINT_OF_INTEREST_TYPE.getHolderOrThrow(ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, resource));
 
             int occupancy = 0;
             if (locator.offset + 1 < lv.size())
@@ -452,14 +451,14 @@ public class WorldAccess {
                 BlockPos pos = ((BlockValue) v).getPos();
                 if (pos == null)
                     throw new InternalExpressionException("Cannot fetch position of an unrealized block");
-                return ListValue.of(new NumericValue(pos.getX()), new NumericValue(pos.getY()), new NumericValue(pos.getZ()));
+                return ValueConversions.of(pos);
             }
             else if (v instanceof EntityValue)
             {
                 Entity e = ((EntityValue) v).getEntity();
                 if (e == null)
                     throw new InternalExpressionException("Null entity");
-                return ListValue.of(new NumericValue(e.getX()), new NumericValue(e.getY()), new NumericValue(e.getZ()));
+                return ValueConversions.of(e.position());
             }
             else
             {
@@ -481,7 +480,7 @@ public class WorldAccess {
             if (lv.size() > locator.offset+1)
                 howMuch = (int) NumericValue.asNumber(lv.get(locator.offset+1)).getLong();
             BlockPos retpos = pos.relative(dir, howMuch);
-            return ListValue.of(new NumericValue(retpos.getX()), new NumericValue(retpos.getY()), new NumericValue(retpos.getZ()));
+            return ValueConversions.of(retpos);
         });
 
         expression.addContextFunction("solid", -1, (c, t, lv) ->
@@ -823,7 +822,7 @@ public class WorldAccess {
                 {
                     playerBreak = true;
                     String itemString = val.getString();
-                    item = Registry.ITEM.getOptional(InputValidator.identifierOf(itemString))
+                    item = BuiltInRegistries.ITEM.getOptional(InputValidator.identifierOf(itemString))
                             .orElseThrow(() -> new ThrowStatement(itemString, Throwables.UNKNOWN_ITEM));
                 }
             }
@@ -928,7 +927,7 @@ public class WorldAccess {
                 throw new InternalExpressionException("'create_explosion' requires at least a position to explode");
             CarpetContext cc = (CarpetContext)c;
             float powah = 4.0f;
-            Explosion.BlockInteraction mode = Explosion.BlockInteraction.BREAK;
+            Explosion.BlockInteraction mode = Explosion.BlockInteraction.DESTROY; // should probably read the gamerule for default behaviour
             boolean createFire = false;
             Entity source = null;
             LivingEntity attacker = null;
@@ -972,7 +971,7 @@ public class WorldAccess {
                                         attacker = (LivingEntity) attackingEntity;
                                     }
                                     else throw new InternalExpressionException("Attacking entity needs to be a living thing, "+
-                                            ValueConversions.of(Registry.ENTITY_TYPE.getKey(attackingEntity.getType())).getString() +" ain't it.");
+                                            ValueConversions.of(BuiltInRegistries.ENTITY_TYPE.getKey(attackingEntity.getType())).getString() +" ain't it.");
 
                                 }
                                 else
@@ -990,13 +989,13 @@ public class WorldAccess {
             // copy of ServerWorld.createExplosion #TRACK#
             Explosion explosion = new Explosion(cc.s.getLevel(), source, null, null, pos.x, pos.y, pos.z, powah, createFire, mode){
                 @Override
-                public @Nullable LivingEntity getSourceMob() {
+                public @Nullable LivingEntity getIndirectSourceEntity() {
                     return theAttacker;
                 }
             };
             explosion.explode();
             explosion.finalizeExplosion(false);
-            if (mode == Explosion.BlockInteraction.NONE) explosion.clearToBlow();
+            if (mode == Explosion.BlockInteraction.KEEP) explosion.clearToBlow();
             cc.s.getLevel().players().forEach(spe -> {
                 if (spe.distanceToSqr(pos) < 4096.0D)
                     spe.connection.send(new ClientboundExplodePacket(pos.x, pos.y, pos.z, thePowah, explosion.getToBlow(), explosion.getHitPlayers().get(spe)));
@@ -1012,7 +1011,7 @@ public class WorldAccess {
             CarpetContext cc = (CarpetContext) c;
             String itemString = lv.get(0).getString();
             Vector3Argument locator = Vector3Argument.findIn(lv, 1);
-            ItemInput stackArg = NBTSerializableValue.parseItem(itemString);
+            ItemInput stackArg = NBTSerializableValue.parseItem(itemString, cc.s.registryAccess());
             BlockPos where = new BlockPos(locator.vec);
             String facing;
             if (lv.size() > locator.offset) {
@@ -1132,12 +1131,12 @@ public class WorldAccess {
         expression.addContextFunction("block_list", -1, (c, t, lv) ->
         {
             if (lv.size() == 0)
-                return ListValue.wrap(Registry.BLOCK.keySet().stream().map(ValueConversions::of).collect(Collectors.toList()));
+                return ListValue.wrap(BuiltInRegistries.BLOCK.keySet().stream().map(ValueConversions::of).collect(Collectors.toList()));
             CarpetContext cc = (CarpetContext)c;
             ResourceLocation tag = InputValidator.identifierOf(lv.get(0).getString());
 
-            Registry<Block> blocks = cc.s.getServer().registryAccess().registryOrThrow(Registry.BLOCK_REGISTRY);
-            Optional<HolderSet.Named<Block>> tagset = blocks.getTag(TagKey.create(Registry.BLOCK_REGISTRY, tag));
+            Registry<Block> blocks = cc.s.getServer().registryAccess().registryOrThrow(Registries.BLOCK);
+            Optional<HolderSet.Named<Block>> tagset = blocks.getTag(TagKey.create(Registries.BLOCK, tag));
             if (tagset.isEmpty()) return Value.NULL;
             return ListValue.wrap(tagset.get().stream().map(b -> ValueConversions.of(blocks.getKey(b.value()))).collect(Collectors.toList()));
         });
@@ -1145,7 +1144,7 @@ public class WorldAccess {
         expression.addContextFunction("block_tags", -1, (c, t, lv) ->
         {
             CarpetContext cc = (CarpetContext)c;
-            Registry<Block> blocks = cc.s.getServer().registryAccess().registryOrThrow(Registry.BLOCK_REGISTRY);
+            Registry<Block> blocks = cc.s.getServer().registryAccess().registryOrThrow(Registries.BLOCK);
             if (lv.size() == 0)
                 return ListValue.wrap(blocks.getTagNames().map(ValueConversions::of).collect(Collectors.toList()));
             BlockArgument blockLocator = BlockArgument.findIn(cc, lv, 0, true);
@@ -1155,7 +1154,7 @@ public class WorldAccess {
                 return ListValue.wrap( blocks.getTags().filter(e -> e.getSecond().stream().anyMatch(h -> (h.value() == target))).map(e -> ValueConversions.of(e.getFirst())).collect(Collectors.toList()));
             }
             String tag = lv.get(blockLocator.offset).getString();
-            Optional<HolderSet.Named<Block>> tagSet = blocks.getTag(TagKey.create(Registry.BLOCK_REGISTRY, InputValidator.identifierOf(tag)));
+            Optional<HolderSet.Named<Block>> tagSet = blocks.getTag(TagKey.create(Registries.BLOCK, InputValidator.identifierOf(tag)));
             if (tagSet.isEmpty()) return Value.NULL;
             return BooleanValue.of(blockLocator.block.getBlockState().is(tagSet.get()));
 
@@ -1181,7 +1180,7 @@ public class WorldAccess {
             CarpetContext cc = (CarpetContext) c;
             ServerLevel world = cc.s.getLevel();
             if (lv.size() == 0)
-                return ListValue.wrap(world.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY).keySet().stream().map(ValueConversions::of));
+                return ListValue.wrap(world.registryAccess().registryOrThrow(Registries.BIOME).keySet().stream().map(ValueConversions::of));
 
             Biome biome;
             BiomeSource biomeSource = world.getChunkSource().getGenerator().getBiomeSource();
@@ -1216,7 +1215,7 @@ public class WorldAccess {
                         Climate.quantizeCoord(numberGetOrThrow(weirdness))
                 );
                 biome = mnbs.getNoiseBiome(point).value();
-                ResourceLocation biomeId = cc.s.getServer().registryAccess().registryOrThrow(Registry.BIOME_REGISTRY).getKey(biome);
+                ResourceLocation biomeId = cc.s.getServer().registryAccess().registryOrThrow(Registries.BIOME).getKey(biome);
                 return new StringValue(NBTSerializableValue.nameFromRegistryId(biomeId));
             }
 
@@ -1224,7 +1223,7 @@ public class WorldAccess {
 
             if (locator.replacement != null)
             {
-                biome = world.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY).get(InputValidator.identifierOf(locator.replacement));
+                biome = world.registryAccess().registryOrThrow(Registries.BIOME).get(InputValidator.identifierOf(locator.replacement));
                 if (biome == null) throw new ThrowStatement(locator.replacement, Throwables.UNKNOWN_BIOME);
             }
             else
@@ -1235,7 +1234,7 @@ public class WorldAccess {
             // in locatebiome
             if (locator.offset == lv.size())
             {
-                ResourceLocation biomeId = cc.s.getServer().registryAccess().registryOrThrow(Registry.BIOME_REGISTRY).getKey(biome);
+                ResourceLocation biomeId = cc.s.getServer().registryAccess().registryOrThrow(Registries.BIOME).getKey(biome);
                 return new StringValue(NBTSerializableValue.nameFromRegistryId(biomeId));
             }
             String biomeFeature = lv.get(locator.offset).getString();
@@ -1253,7 +1252,7 @@ public class WorldAccess {
                 throw new InternalExpressionException("'set_biome' needs a biome name as an argument");
             String biomeName = lv.get(locator.offset+0).getString();
             // from locatebiome command code
-            Holder<Biome> biome = cc.s.getServer().registryAccess().registryOrThrow(Registry.BIOME_REGISTRY).getHolder(ResourceKey.create(Registry.BIOME_REGISTRY, InputValidator.identifierOf(biomeName)))
+            Holder<Biome> biome = cc.s.getServer().registryAccess().registryOrThrow(Registries.BIOME).getHolder(ResourceKey.create(Registries.BIOME, InputValidator.identifierOf(biomeName)))
                 .orElseThrow(() -> new ThrowStatement(biomeName, Throwables.UNKNOWN_BIOME));
 
 
@@ -1297,7 +1296,7 @@ public class WorldAccess {
             ServerLevel world = cc.s.getLevel();
             BlockPos pos = locator.block.getPos();
             Map<Structure, LongSet> references = world.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.STRUCTURE_REFERENCES).getAllReferences();
-            Registry<Structure> reg = cc.s.getServer().registryAccess().registryOrThrow(Registry.STRUCTURE_REGISTRY);
+            Registry<Structure> reg = cc.s.getServer().registryAccess().registryOrThrow(Registries.STRUCTURE);
             if (lv.size() == locator.offset)
                 return ListValue.wrap(references.entrySet().stream().
                         filter(e -> e.getValue()!= null && !e.getValue().isEmpty()).
@@ -1328,7 +1327,7 @@ public class WorldAccess {
             final List<Structure> structure = new ArrayList<>();
             boolean needSize = false;
             boolean singleOutput = false;
-            Registry<Structure> reg = cc.s.getServer().registryAccess().registryOrThrow(Registry.STRUCTURE_REGISTRY);
+            Registry<Structure> reg = cc.s.getServer().registryAccess().registryOrThrow(Registries.STRUCTURE);
             if (lv.size() > locator.offset)
             {
                 Value requested = lv.get(locator.offset+0);
@@ -1344,7 +1343,7 @@ public class WorldAccess {
                     }
                     else
                     {
-                        StructureType<?> sss = Registry.STRUCTURE_TYPES.get(id);
+                        StructureType<?> sss = BuiltInRegistries.STRUCTURE_TYPE.get(id);
                         reg.entrySet().stream().filter(e -> e.getValue().type() ==sss).forEach(e -> structure.add(e.getValue()));
                     }
                     if (structure.isEmpty())
@@ -1402,7 +1401,7 @@ public class WorldAccess {
             ServerLevel world = cc.s.getLevel();
             BlockPos pos = locator.block.getPos();
             Map<Structure, StructureStart> structures = world.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.STRUCTURE_STARTS).getAllStarts();
-            Registry<Structure> reg = cc.s.getServer().registryAccess().registryOrThrow(Registry.STRUCTURE_REGISTRY);
+            Registry<Structure> reg = cc.s.getServer().registryAccess().registryOrThrow(Registries.STRUCTURE);
             if (lv.size() == locator.offset)
             {
                 Map<Value, Value> structureList = new HashMap<>();
@@ -1414,7 +1413,7 @@ public class WorldAccess {
                     BoundingBox box = start.getBoundingBox();
                     structureList.put(
                             new StringValue(NBTSerializableValue.nameFromRegistryId(reg.getKey(entry.getKey()))),
-                            ListValue.of(ListValue.fromTriple(box.minX(), box.minY(), box.minZ()), ListValue.fromTriple(box.maxX(), box.maxY(), box.maxZ()))
+                            ValueConversions.of(box)
                     );
                 }
                 return MapValue.wrap(structureList);

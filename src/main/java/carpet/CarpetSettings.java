@@ -12,7 +12,7 @@ import carpet.utils.Messenger;
 import carpet.utils.SpawnChunks;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerInterface;
@@ -47,10 +47,11 @@ import static carpet.api.settings.RuleCategory.CLIENT;
 @SuppressWarnings({"CanBeFinal", "removal"}) // removal should be removed after migrating rules to the new system
 public class CarpetSettings
 {
-    public static final String carpetVersion = "1.4.83+v220727";
+    public static final String carpetVersion = "1.4.91+v221207";
+    public static final String releaseTarget = "1.19.3";
     public static final Logger LOG = LoggerFactory.getLogger("carpet");
-    public static ThreadLocal<Boolean> skipGenerationChecks = ThreadLocal.withInitial(() -> false);
-    public static ThreadLocal<Boolean> impendingFillSkipUpdates = ThreadLocal.withInitial(() -> false);
+    public static final ThreadLocal<Boolean> skipGenerationChecks = ThreadLocal.withInitial(() -> false);
+    public static final ThreadLocal<Boolean> impendingFillSkipUpdates = ThreadLocal.withInitial(() -> false);
     public static int runPermissionLevel = 2;
     public static boolean doChainStone = false;
     public static boolean chainStoneStickToAll = false;
@@ -72,7 +73,7 @@ public class CarpetSettings
     @Rule(
             desc = "Sets the language for Carpet",
             category = FEATURE,
-            options = {"en_us", "zh_cn", "zh_tw"},
+            options = {"en_us", "pt_br", "zh_cn", "zh_tw"},
             strict = true, // the current system doesn't handle fallbacks and other, not defined languages would make unreadable mess. Change later
             validate = LanguageValidator.class
     )
@@ -1004,7 +1005,7 @@ public class CarpetSettings
 
         @Override
         public String validate(CommandSourceStack source, CarpetRule<String> currentRule, String newValue, String string) {
-            Optional<Block> ignoredBlock = Registry.BLOCK.getOptional(ResourceLocation.tryParse(newValue));
+            Optional<Block> ignoredBlock = BuiltInRegistries.BLOCK.getOptional(ResourceLocation.tryParse(newValue));
             if (!ignoredBlock.isPresent()) {
                 Messenger.m(source, "r Unknown block '" + newValue + "'.");
                 return null;
